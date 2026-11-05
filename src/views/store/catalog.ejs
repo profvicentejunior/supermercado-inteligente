@@ -1,0 +1,49 @@
+<%- include('partials/header', { title, filters }) %>
+
+<section class="catalog-top">
+  <span class="eyebrow">TUDO O QUE VOCÊ PRECISA</span>
+  <h1>Nosso catálogo</h1>
+  <p>Encontre seus produtos favoritos.</p>
+  <form class="catalog-search" action="/loja/produtos" method="GET">
+    <input type="search" name="q" placeholder="Buscar por nome ou descrição..." value="<%= filters.q || '' %>">
+    <select name="categoria">
+      <option value="">Todas as categorias</option>
+      <% categories.forEach(category => { %>
+        <option value="<%= category.id %>" <%= String(filters.categoria || '') === String(category.id) ? 'selected' : '' %>><%= category.name %></option>
+      <% }) %>
+    </select>
+    <button class="btn-main" type="submit">Buscar</button>
+  </form>
+</section>
+
+<section class="section catalog-section">
+  <div class="section-heading"><div><span class="eyebrow">RESULTADOS</span><h2><%= products.length %> produto(s) encontrado(s)</h2></div></div>
+  <% if (products.length) { %>
+    <div class="product-grid">
+      <% products.forEach((product, index) => { %>
+        <article class="product-card">
+          <div class="product-visual visual-<%= index % 5 %>"><span><%= ['🥑','🍎','🥛','🍞','🍊'][index % 5] %></span><small><%= product.category_name || 'Mercado' %></small></div>
+          <div class="product-info">
+            <small class="product-category"><%= product.category_name || 'Produto' %></small>
+            <h3><%= product.name %></h3>
+            <p class="product-unit"><%= product.unit %></p>
+            <div class="product-bottom">
+              <strong>R$ <%= Number(product.price).toFixed(2).replace('.', ',') %></strong>
+              <% if (Number(product.stock) > 0) { %>
+                <form action="/loja/carrinho/adicionar" method="POST">
+                  <input type="hidden" name="product_id" value="<%= product.id %>">
+                  <input type="hidden" name="quantity" value="1">
+                  <button class="add-button" type="submit">+</button>
+                </form>
+              <% } else { %><span class="out-stock">Indisponível</span><% } %>
+            </div>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <div class="empty-state">Nenhum produto encontrado. Tente outra busca ou categoria.</div>
+  <% } %>
+</section>
+
+<%- include('partials/footer') %>

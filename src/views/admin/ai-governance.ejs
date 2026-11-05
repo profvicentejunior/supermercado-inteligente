@@ -1,0 +1,410 @@
+<%- include('../partials/header', {title}) %>
+
+<div class="page-heading">
+  <div>
+    <div class="eyebrow">INTELIGÊNCIA ARTIFICIAL · CONTROLE E GOVERNANÇA</div>
+    <h1>Governança de IA</h1>
+    <p>Gerencie instruções, versões, agentes e configurações dos modelos.</p>
+  </div>
+</div>
+
+<% if (sucesso) { %>
+  <div class="alert alert-success"><%= sucesso %></div>
+<% } %>
+<% if (erro) { %>
+  <div class="alert alert-danger"><%= erro %></div>
+<% } %>
+
+<div class="metrics-grid">
+  <div class="metric-card">
+    <span>Prompts cadastrados</span>
+    <strong><%= prompts.length %></strong>
+  </div>
+  <div class="metric-card">
+    <span>Agentes cadastrados</span>
+    <strong><%= agents.length %></strong>
+  </div>
+  <div class="metric-card">
+    <span>Agentes ativos</span>
+    <strong><%= agents.filter(a => a.status === 'active').length %></strong>
+  </div>
+  <div class="metric-card">
+    <span>Versões de prompts</span>
+    <strong><%= prompts.reduce((total, p) => total + Number(p.current_version), 0) %></strong>
+  </div>
+</div>
+
+<section class="panel mt-4">
+  <div class="panel-head">
+    <div>
+      <h2>Biblioteca de prompts</h2>
+      <p>Instruções reutilizáveis e versionadas para os agentes.</p>
+    </div>
+  </div>
+
+  <form method="POST" action="/admin/ai-governance/prompts" class="mb-4">
+    <h3 class="h6 mb-3">Cadastrar novo prompt</h3>
+    <div class="form-grid">
+      <div>
+        <label class="form-label">Nome</label>
+        <input class="form-control" name="name" required maxlength="150" placeholder="Ex.: Assistente de compras">
+      </div>
+      <div>
+        <label class="form-label">Categoria</label>
+        <input class="form-control" name="category" maxlength="80" placeholder="Ex.: Compras">
+      </div>
+      <div>
+        <label class="form-label">Descrição</label>
+        <input class="form-control" name="description" placeholder="Finalidade do prompt">
+      </div>
+    </div>
+    <div class="mt-3">
+      <label class="form-label">Conteúdo inicial</label>
+      <textarea class="form-control" name="content" rows="5" required placeholder="Escreva as instruções que serão utilizadas pelo agente..."></textarea>
+    </div>
+    <button class="btn btn-primary mt-3" type="submit">Cadastrar prompt</button>
+  </form>
+
+  <hr>
+
+  <% if (!prompts.length) { %>
+    <p class="text-muted mb-0">Nenhum prompt cadastrado ainda.</p>
+  <% } %>
+
+  <% prompts.forEach(prompt => { %>
+    <div class="border rounded-3 p-3 mb-3">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+          <h3 class="h6 mb-1"><%= prompt.name %></h3>
+          <small class="text-muted"><%= prompt.slug %> · Versão <%= prompt.current_version %></small>
+        </div>
+        <span class="badge <%= prompt.status === 'active' ? 'text-bg-success' : 'text-bg-secondary' %>">
+          <%= prompt.status === 'active' ? 'Ativo' : 'Inativo' %>
+        </span>
+      </div>
+
+      <form method="POST" action="/admin/ai-governance/prompts/<%= prompt.id %>" class="mt-3">
+        <div class="form-grid">
+          <div>
+            <label class="form-label">Nome</label>
+            <input class="form-control" name="name" value="<%= prompt.name %>" required>
+          </div>
+          <div>
+            <label class="form-label">Categoria</label>
+            <input class="form-control" name="category" value="<%= prompt.category || '' %>">
+          </div>
+          <div>
+            <label class="form-label">Descrição</label>
+            <input class="form-control" name="description" value="<%= prompt.description || '' %>">
+          </div>
+          <div>
+            <label class="form-label">Status</label>
+            <select class="form-select" name="status">
+              <option value="active" <%= prompt.status === 'active' ? 'selected' : '' %>>Ativo</option>
+              <option value="inactive" <%= prompt.status === 'inactive' ? 'selected' : '' %>>Inativo</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-outline-primary btn-sm mt-2" type="submit">Salvar dados</button>
+      </form>
+
+      <details class="mt-3">
+        <summary class="mb-2">Visualizar conteúdo da versão atual</summary>
+        <pre class="bg-light rounded p-3 text-wrap"><%= prompt.current_content || 'Conteúdo não encontrado.' %></pre>
+      </details>
+
+      <form method="POST" action="/admin/ai-governance/prompts/<%= prompt.id %>/versions" class="mt-3">
+        <h4 class="h6">Criar versão <%= Number(prompt.current_version) + 1 %></h4>
+        <label class="form-label">Novo conteúdo</label>
+        <textarea class="form-control" name="content" rows="4" required placeholder="Informe o conteúdo atualizado do prompt..."></textarea>
+        <label class="form-label mt-2">O que mudou?</label>
+        <input class="form-control" name="change_notes" placeholder="Ex.: Ajuste nas regras de recomendação">
+        <button class="btn btn-outline-dark btn-sm mt-2" type="submit">Registrar nova versão</button>
+      </form>
+    </div>
+  <% }) %>
+</section>
+
+<section class="panel mt-4">
+  <div class="panel-head">
+    <div>
+      <h2>Agentes de IA</h2>
+      <p>Configure os agentes e associe-os a versões específicas de prompts.</p>
+    </div>
+  </div>
+
+  <form method="POST" action="/admin/ai-governance/agents" class="mb-4">
+    <h3 class="h6 mb-3">Cadastrar agente</h3>
+    <div class="form-grid">
+      <div>
+        <label class="form-label">Nome do agente</label>
+        <input class="form-control" name="name" required placeholder="Ex.: Agente de reposição">
+      </div>
+      <div>
+        <label class="form-label">Provedor</label>
+        <select class="form-select" name="provider">
+          <option value="not_configured">Não configurado</option>
+          <option value="openai">OpenAI</option>
+          <option value="google">Google</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="local">Modelo local</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Modelo</label>
+        <input class="form-control" name="model" placeholder="Nome do modelo">
+      </div>
+      <div>
+        <label class="form-label">Prompt associado</label>
+        <select class="form-select" name="prompt_id" id="agent-prompt">
+          <option value="">Nenhum</option>
+          <% prompts.filter(p => p.status === 'active').forEach(prompt => { %>
+            <option value="<%= prompt.id %>"><%= prompt.name %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Versão do prompt</label>
+        <select class="form-select" name="prompt_version_id" id="agent-prompt-version">
+          <option value="">Versão atual</option>
+          <% prompts.filter(p => p.status === 'active' && p.current_version).forEach(prompt => { %>
+            <option value="<%= prompt.id %>:<%= prompt.current_version %>"><%= prompt.name %> · v<%= prompt.current_version %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Temperatura (0 a 2)</label>
+        <input class="form-control" type="number" name="temperature" min="0" max="2" step="0.01" value="0.30">
+      </div>
+      <div>
+        <label class="form-label">Máximo de tokens</label>
+        <input class="form-control" type="number" name="max_tokens" min="1" placeholder="Ex.: 1000">
+      </div>
+    </div>
+    <div class="mt-3">
+      <label class="form-label">Descrição</label>
+      <input class="form-control" name="description" placeholder="Responsabilidade do agente">
+    </div>
+    <div class="mt-3">
+      <label class="form-label">Configuração adicional (JSON)</label>
+      <textarea class="form-control" name="configuration" rows="3" placeholder='{"can_use_tools": false}'></textarea>
+    </div>
+    <button class="btn btn-primary mt-3" type="submit">Cadastrar agente</button>
+    <small class="text-muted d-block mt-2">Novos agentes são cadastrados inativos. Nenhuma chamada externa de IA é realizada.</small>
+  </form>
+
+  <hr>
+
+  <h3 class="h6 mb-3">Agentes cadastrados</h3>
+  <% if (!agents.length) { %>
+    <p class="text-muted">Nenhum agente cadastrado ainda.</p>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table clean-table align-middle">
+        <thead>
+          <tr>
+            <th>Agente</th>
+            <th>Modelo</th>
+            <th>Prompt</th>
+            <th>Temperatura</th>
+            <th>Status</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% agents.forEach(agent => { %>
+            <tr>
+              <td>
+                <strong><%= agent.name %></strong>
+                <small class="d-block text-muted"><%= agent.slug %></small>
+              </td>
+              <td><%= agent.provider %><small class="d-block text-muted"><%= agent.model || 'Sem modelo definido' %></small></td>
+              <td><%= agent.prompt_name || 'Não associado' %><small class="d-block text-muted"><%= agent.prompt_version ? 'Versão ' + agent.prompt_version : '' %></small></td>
+              <td><%= agent.temperature %></td>
+              <td>
+                <span class="badge <%= agent.status === 'active' ? 'text-bg-success' : 'text-bg-secondary' %>">
+                  <%= agent.status === 'active' ? 'Ativo' : 'Inativo' %>
+                </span>
+              </td>
+              <td>
+                <form method="POST" action="/admin/ai-governance/agents/<%= agent.id %>/toggle">
+                  <button class="btn btn-sm <%= agent.status === 'active' ? 'btn-outline-danger' : 'btn-outline-success' %>" type="submit">
+                    <%= agent.status === 'active' ? 'Desativar' : 'Ativar' %>
+                  </button>
+                </form>
+                <% if (agent.slug === 'analista-inteligente-de-estoque') { %>
+                  <form method="POST" target="_blank"
+                        action="/admin/ai-governance/agents/<%= agent.id %>/run-stock-analysis"
+                        class="mt-2">
+                    <button class="btn btn-sm btn-primary" type="submit">
+                      Analisar estoque com IA
+                    </button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+
+<section class="panel mt-4">
+  <div class="panel-head">
+    <div>
+      <h2>Avaliação dos agentes</h2>
+      <p>Registre testes, notas e resultados dos agentes.</p>
+    </div>
+  </div>
+
+  <% if (!agents.length) { %>
+    <p class="text-muted">Cadastre um agente antes de avaliá-lo.</p>
+  <% } else { %>
+    <form method="POST" id="evaluation-form"
+          action="/admin/ai-governance/agents/<%= agents[0].id %>/evaluations">
+      <div class="form-grid">
+        <div>
+          <label class="form-label">Agente</label>
+          <select class="form-select" id="evaluation-agent">
+            <% agents.forEach(agent => { %>
+              <option value="<%= agent.id %>"><%= agent.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Tipo</label>
+          <select class="form-select" name="evaluation_type" required>
+            <option value="functional">Teste funcional</option>
+            <option value="quality">Qualidade da resposta</option>
+            <option value="security">Segurança</option>
+            <option value="manual">Avaliação manual</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Resultado</label>
+          <select class="form-select" name="result" required>
+            <option value="passed">Aprovado</option>
+            <option value="failed">Reprovado</option>
+            <option value="pending">Pendente</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Nota (0 a 100)</label>
+          <input class="form-control" type="number" name="score"
+                 min="0" max="100" step="0.01" placeholder="Ex.: 95">
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <label class="form-label">Entrada utilizada no teste</label>
+        <textarea class="form-control" name="input_data" rows="2"></textarea>
+      </div>
+      <div class="mt-3">
+        <label class="form-label">Resposta observada</label>
+        <textarea class="form-control" name="output_data" rows="2"></textarea>
+      </div>
+      <div class="mt-3">
+        <label class="form-label">Observações</label>
+        <textarea class="form-control" name="notes" rows="2"></textarea>
+      </div>
+      <button class="btn btn-primary mt-3" type="submit">
+        Registrar avaliação
+      </button>
+    </form>
+  <% } %>
+
+  <hr>
+  <h3 class="h6 mb-3">Histórico de avaliações</h3>
+
+  <% if (!evaluations.length) { %>
+    <p class="text-muted">Nenhuma avaliação registrada ainda.</p>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table clean-table align-middle">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Agente</th>
+            <th>Tipo</th>
+            <th>Nota</th>
+            <th>Resultado</th>
+            <th>Observações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% evaluations.forEach(item => { %>
+            <tr>
+              <td><%= new Date(item.created_at).toLocaleString('pt-BR') %></td>
+              <td>
+                <strong><%= item.agent_name %></strong>
+                <small class="d-block text-muted">
+                  <%= item.prompt_version ? 'Prompt v' + item.prompt_version : 'Sem versão vinculada' %>
+                </small>
+              </td>
+              <td><%= ({functional:'Funcional',quality:'Qualidade',security:'Segurança',manual:'Manual'})[item.evaluation_type] %></td>
+              <td><%= item.score === null ? '—' : item.score %></td>
+              <td>
+                <span class="badge <%= item.result === 'passed' ? 'text-bg-success' : item.result === 'failed' ? 'text-bg-danger' : 'text-bg-secondary' %>">
+                  <%= item.result === 'passed' ? 'Aprovado' : item.result === 'failed' ? 'Reprovado' : 'Pendente' %>
+                </span>
+              </td>
+              <td><%= item.notes || '—' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<script>
+(() => {
+  const form = document.getElementById('evaluation-form');
+  const select = document.getElementById('evaluation-agent');
+  if (!form || !select) return;
+
+  const updateAction = () => {
+    form.action = '/admin/ai-governance/agents/' +
+      select.value + '/evaluations';
+  };
+
+  select.addEventListener('change', updateAction);
+  updateAction();
+})();
+</script>
+
+<script>
+(() => {
+  const promptSelect = document.getElementById('agent-prompt');
+  const versionSelect = document.getElementById('agent-prompt-version');
+
+  const versions = [
+    <% prompts.filter(p => p.status === 'active').forEach(prompt => { %>
+      { promptId: '<%= prompt.id %>', versionId: '<%= prompt.current_version %>', label: '<%= prompt.name.replace(/\\/g, '\\\\').replace(/'/g, "\\'") %> · v<%= prompt.current_version %>' },
+    <% }) %>
+  ];
+
+  function updateVersions() {
+    const selected = promptSelect.value;
+    versionSelect.innerHTML = '<option value="">Versão atual</option>';
+
+    versions.filter(item => item.promptId === selected).forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.versionId;
+      option.textContent = item.label;
+      versionSelect.appendChild(option);
+    });
+  }
+
+  promptSelect.addEventListener('change', updateVersions);
+  versionSelect.addEventListener('change', () => {
+    if (versionSelect.value) {
+      // O formulário envia o ID da versão, validado no servidor.
+    }
+  });
+})();
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,76 @@
+<%- include('partials/header', { title }) %>
+
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">SEU MERCADO, AGORA ONLINE</span>
+    <h1>Mais praticidade<br>para sua <em>rotina.</em></h1>
+    <p>Encontre seus produtos favoritos e faça suas compras sem sair de casa.</p>
+    <a class="btn-main" href="/loja/produtos">Explorar produtos <span>→</span></a>
+    <div class="hero-trust"><span>✓</span> Compra simples e prática <span>✓</span> Estoque atualizado</div>
+  </div>
+  <div class="hero-art">
+    <div class="hero-circle"></div>
+    <div class="hero-emoji">🛒</div>
+    <span class="float-item item-one">🥑</span>
+    <span class="float-item item-two">🍊</span>
+    <span class="float-item item-three">🥬</span>
+    <span class="float-item item-four">🍞</span>
+    <div class="hero-note"><strong>Seu mercado</strong><br>em poucos cliques ✨</div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-heading">
+    <div><span class="eyebrow">NAVEGUE POR</span><h2>Categorias</h2></div>
+    <a class="text-link" href="/loja/produtos">Ver tudo →</a>
+  </div>
+  <% if (categories.length) { %>
+    <div class="category-grid">
+      <% categories.forEach((category, index) => { %>
+        <a class="category-card category-<%= index % 6 %>" href="/loja/produtos?categoria=<%= category.id %>">
+          <span class="category-emoji"><%= ['🥬','🍎','🥛','🥖','🧼','🥩'][index % 6] %></span>
+          <strong><%= category.name %></strong><span>Explorar →</span>
+        </a>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <p class="empty-state">As categorias serão exibidas aqui assim que forem cadastradas.</p>
+  <% } %>
+</section>
+
+<section class="section products-section">
+  <div class="section-heading">
+    <div><span class="eyebrow">SELEÇÃO DA LOJA</span><h2>Produtos disponíveis</h2></div>
+    <a class="text-link" href="/loja/produtos">Ver catálogo completo →</a>
+  </div>
+  <% if (products.length) { %>
+    <div class="product-grid">
+      <% products.forEach((product, index) => { %>
+        <article class="product-card">
+          <div class="product-visual visual-<%= index % 5 %>"><span><%= ['🥑','🍎','🥛','🍞','🍊'][index % 5] %></span><small><%= product.category_name || 'Mercado' %></small></div>
+          <div class="product-info">
+            <small class="product-category"><%= product.category_name || 'Produto' %></small>
+            <h3><%= product.name %></h3>
+            <p class="product-unit"><%= product.unit %></p>
+            <div class="product-bottom">
+              <strong>R$ <%= Number(product.price).toFixed(2).replace('.', ',') %></strong>
+              <% if (Number(product.stock) > 0) { %>
+                <form action="/loja/carrinho/adicionar" method="POST">
+                  <input type="hidden" name="product_id" value="<%= product.id %>">
+                  <input type="hidden" name="quantity" value="1">
+                  <button class="add-button" type="submit">+</button>
+                </form>
+              <% } else { %><span class="out-stock">Indisponível</span><% } %>
+            </div>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <p class="empty-state">Ainda não há produtos ativos cadastrados para exibição.</p>
+  <% } %>
+</section>
+
+<section class="bottom-cta"><div><span class="eyebrow">É FÁCIL COMEÇAR</span><h2>Suas compras começam aqui.</h2><p>Explore nosso catálogo e encontre o que precisa.</p></div><a class="btn-main" href="/loja/produtos">Ver produtos →</a></section>
+
+<%- include('partials/footer') %>

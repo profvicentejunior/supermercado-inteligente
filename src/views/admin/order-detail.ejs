@@ -1,0 +1,42 @@
+<%- include('../partials/header', {title}) %>
+<div class="page-heading">
+  <div><div class="eyebrow">OPERAÇÃO DA LOJA</div><h1>Pedido <%= order.order_number %></h1>
+  <p><%= order.customer_name %> · <%= order.customer_phone || 'Sem telefone' %></p></div>
+  <span class="date-chip">R$ <%= Number(order.total).toFixed(2).replace('.', ',') %></span>
+</div>
+<section class="panel">
+  <div class="panel-head"><div><h2>Itens do pedido</h2><p>Produtos e quantidades compradas</p></div></div>
+  <div class="table-responsive"><table class="table clean-table">
+    <thead><tr><th>Produto</th><th>SKU</th><th>Quantidade</th><th>Preço unitário</th><th>Total</th></tr></thead>
+    <tbody><% items.forEach(i => { %><tr>
+      <td><%= i.product_name %></td><td><%= i.sku %></td><td><%= i.quantity %></td>
+      <td>R$ <%= Number(i.unit_price).toFixed(2).replace('.', ',') %></td>
+      <td>R$ <%= Number(i.line_total).toFixed(2).replace('.', ',') %></td>
+    </tr><% }) %></tbody>
+  </table></div>
+</section>
+<section class="panel" style="margin-top:20px">
+  <div class="panel-head"><div><h2>Entrega e observações</h2></div></div>
+  <p><%= order.notes || 'Nenhuma observação.' %></p>
+  <p>Pagamento atual: <strong><%= order.payment_status %></strong></p>
+  <form method="POST" action="/admin/orders/<%= order.id %>/payment" style="margin:15px 0">
+    <label for="payment_status">Atualizar pagamento</label>
+    <select id="payment_status" name="payment_status">
+      <% ['PENDING','PAID','FAILED','REFUNDED'].forEach(s => { %>
+        <option value="<%= s %>" <%= order.payment_status === s ? 'selected' : '' %>><%= s %></option>
+      <% }) %>
+    </select>
+    <button type="submit">Salvar pagamento</button>
+  </form>
+  <form method="POST" action="/admin/orders/<%= order.id %>/status">
+    <label for="status">Situação do pedido</label>
+    <select id="status" name="status">
+      <% ['PENDING','PROCESSING','COMPLETED','CANCELLED'].forEach(s => { %>
+        <option value="<%= s %>" <%= order.status === s ? 'selected' : '' %>><%= s %></option>
+      <% }) %>
+    </select>
+    <button type="submit">Salvar situação</button>
+  </form>
+</section>
+<p style="margin-top:20px"><a href="/admin/orders">← Voltar aos pedidos</a></p>
+<%- include('../partials/footer') %>

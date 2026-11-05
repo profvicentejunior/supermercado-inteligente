@@ -1,0 +1,29 @@
+<%- include('partials/header', { title }) %>
+
+<section class="section order-success">
+  <div class="success-icon">✓</div>
+  <span class="eyebrow">PEDIDO REGISTRADO</span>
+  <h1>Obrigado pela sua compra!</h1>
+  <p>Seu pedido foi registrado com sucesso.</p>
+  <div class="success-card">
+    <span>Número do pedido</span>
+    <strong><%= order.order_number %></strong>
+    <div class="success-total">
+      <span>Total</span>
+      <strong>R$ <%= Number(order.total).toFixed(2).replace('.', ',') %></strong>
+    </div>
+    <p>Status: <strong><%= order.status %></strong></p>
+    <p>Pagamento: <strong><%= order.payment_status %></strong></p>
+  </div>
+  <h2>Itens do pedido</h2>
+  <% items.forEach(item => { %>
+    <div class="success-item">
+      <span><%= item.quantity %> × <%= item.product_name %></span>
+      <strong>R$ <%= Number(item.line_total).toFixed(2).replace('.', ',') %></strong>
+    </div>
+  <% }) %>
+  <a href="/loja/produtos" class="btn-main">Continuar comprando</a>
+</section>
+
+<style>
+.order-success{max-width:680px;margin:0 auto;text-align:center;padding-top:45px;padding-bottom:60px}.success-icon{width:62px;height:62px;border-radius:50%;background:#e8f5e9;color:#23834a;font-size:36px;display:grid;place-items:center;margin:0 auto 18px}.order-success h1{font:800 30px Manrope,sans-serif;margin:10px 0}.order-success>p{color:#718078}.success-card{border:1px solid #e9eee8;border-radius:14px;padding:22px;margin:25px 0;text-align:left}.success-card>span{display:block;color:#718078;font-size:12px}.success-card>strong{font-size:21px}.success-total{display:flex;justify-content:space-between;border-top:1px solid #e9eee8;margin-top:15px;padding-top:15px}.success-item{display:flex;justify-content:space-between;gap:12px;padding:12px;border-bottom:1px solid #e9eee8;text-align:left;font-size:13px}.order-success h2{font:700 18px Manrope,sans-serif;text-align:left}.order-success>.btn-main{display:inline-flex;margin-top:25px}

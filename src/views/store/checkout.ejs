@@ -1,0 +1,50 @@
+<%- include('partials/header', { title }) %>
+
+<section class="catalog-top">
+  <span class="eyebrow">ÚLTIMA ETAPA</span>
+  <h1>Finalizar pedido</h1>
+  <p>Informe seus dados para registrar sua compra.</p>
+</section>
+
+<section class="section checkout-section">
+  <div class="checkout-layout">
+    <form action="/loja/checkout" method="POST" class="checkout-form">
+      <h2>Seus dados</h2>
+      <label>Nome completo *
+        <input type="text" name="name" maxlength="150" required placeholder="Seu nome">
+      </label>
+      <label>Telefone *
+        <input type="tel" name="phone" maxlength="30" required placeholder="(85) 99999-9999">
+      </label>
+      <label>E-mail
+        <input type="email" name="email" maxlength="150" placeholder="voce@email.com">
+      </label>
+      <label>Endereço para entrega *
+        <textarea name="address" rows="3" maxlength="1000" required placeholder="Rua, número, bairro, cidade e CEP"></textarea>
+      </label>
+      <label>Observações
+        <textarea name="notes" rows="2" maxlength="1000" placeholder="Complemento ou referência"></textarea>
+      </label>
+      <button type="submit" class="btn-main">Confirmar pedido →</button>
+      <p class="checkout-disclaimer">O pedido será registrado como pendente. O pagamento não é processado nesta etapa.</p>
+    </form>
+
+    <aside class="checkout-summary">
+      <h2>Resumo da compra</h2>
+      <% items.forEach(item => { %>
+        <div class="checkout-line">
+          <span><%= item.quantity %> × <%= item.name %></span>
+          <strong>R$ <%= (item.price * item.quantity).toFixed(2).replace('.', ',') %></strong>
+        </div>
+      <% }) %>
+      <div class="checkout-total">
+        <span>Total</span>
+        <strong>R$ <%= subtotal.toFixed(2).replace('.', ',') %></strong>
+      </div>
+      <a href="/loja/carrinho" class="continue-link">← Voltar ao carrinho</a>
+    </aside>
+  </div>
+</section>
+
+<style>
+.checkout-layout{display:grid;grid-template-columns:1fr 340px;gap:28px;align-items:start}.checkout-form,.checkout-summary{border:1px solid #e9eee8;border-radius:15px;padding:25px}.checkout-form{display:grid;gap:16px}.checkout-form h2,.checkout-summary h2{font:800 20px Manrope,sans-serif;margin:0 0 5px}.checkout-form label{display:grid;gap:7px;font-size:13px;font-weight:700;color:#34443a}.checkout-form input,.checkout-form textarea{width:100%;padding:12px;border:1px solid #dfe7df;border-radius:9px;font:inherit;font-weight:400;box-sizing:border-box}.checkout-form textarea{resize:vertical}.checkout-form .btn-main{border:0;cursor:pointer;justify-content:center;padding:14px}.checkout-disclaimer{font-size:11px;color:#718078;line-height:1.5;margin:0}.checkout-summary{position:sticky;top:20px}.checkout-line,.checkout-total{display:flex;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid #e9eee8;font-size:12px}.checkout-line strong,.checkout-total strong{white-space:nowrap}.checkout-total{font-size:16px;border:0}.checkout-summary .continue-link{margin-top:12px}@media(max-width:760px){.checkout-layout{grid-template-columns:1fr}}

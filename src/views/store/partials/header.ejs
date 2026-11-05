@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Supermercado Inteligente: qualidade, economia e praticidade nas suas compras.">
+  <title><%= title %> | Supermercado Inteligente</title>
+  <link rel="stylesheet" href="/css/store.css">
+</head>
+<body>
+<header class="store-header">
+  <div class="store-nav">
+    <a class="brand" href="/loja"><span class="brand-icon">✳</span><span>super<span class="brand-accent">inteligente</span><small>SEU MERCADO ONLINE</small></span></a>
+    <form class="nav-search" action="/loja/produtos" method="GET">
+      <input type="search" name="q" placeholder="O que você procura hoje?" value="<%= typeof filters !== 'undefined' && filters.q ? filters.q : '' %>">
+      <button type="submit">⌕</button>
+    </form>
+    <a class="cart-link" href="/loja/carrinho">🛒 <span>Carrinho</span> <b><%= cartCount || 0 %></b></a>
+  </div>
+</header>
+<% if (storeMessage) { %>
+  <div class="store-alert"><%= storeMessage %></div>
+<% } %>
+<main>

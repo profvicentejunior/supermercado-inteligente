@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body{background:#f4f6f9;padding:30px}
+    .panel{background:white;border-radius:12px;padding:24px;margin-bottom:18px}
+    .analysis{white-space:pre-wrap;line-height:1.7}
+  </style>
+</head>
+<body>
+  <main class="container">
+    <a href="/admin/ai-governance" class="btn btn-outline-secondary mb-3">← Governança de IA</a>
+    <h1 class="h3 mb-3">Análise inteligente de estoque</h1>
+    <section class="panel">
+      <h2 class="h5"><%= agent.name %></h2>
+      <div class="row g-3 mt-1">
+        <div class="col-md-3"><strong><%= productsAnalyzed %></strong><br><small>Produtos analisados</small></div>
+        <div class="col-md-3"><strong><%= lowStockCount %></strong><br><small>No mínimo ou abaixo</small></div>
+        <div class="col-md-3"><strong><%= durationMs %> ms</strong><br><small>Duração</small></div>
+        <div class="col-md-3"><strong><%= totalTokens %></strong><br><small>Tokens consumidos</small></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2 class="h5 mb-3">Recomendações do Gemini</h2>
+      <div class="analysis"><%= analysis %></div>
+    </section>
+    <p class="text-muted small">Tokens de entrada: <%= inputTokens %> · Tokens de saída: <%= outputTokens %></p>
+  </main>
+</body>
+</html>
