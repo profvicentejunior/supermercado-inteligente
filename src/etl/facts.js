@@ -32,7 +32,8 @@ async function syncSalesFacts() {
             'o.customer_id',
             'o.order_number',
             'o.placed_at',
-            'o.created_at'
+            'o.created_at',
+            dbOLTP.raw("CAST(DATE_FORMAT(COALESCE(o.placed_at, o.created_at), '%Y%m%d') AS UNSIGNED) AS date_key")
         );
 
     const rows = sourceRows
@@ -42,7 +43,7 @@ async function syncSalesFacts() {
             if (!productKey || !customerKey) return null;
 
             return {
-                date_key: toDateKey(row.placed_at || row.created_at),
+                date_key: Number(row.date_key),
                 product_key: productKey,
                 customer_key: customerKey,
                 source_order_id: row.source_order_id,
