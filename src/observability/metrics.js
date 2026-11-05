@@ -74,4 +74,51 @@ function renderMetrics() {
     return lines.join('\n') + '\n';
 }
 
-module.exports = { metricsMiddleware, renderMetrics };
+function getTelemetrySnapshot() {
+    const routeMap = new Map();
+    let total = 0;
+    let errors = 0;
+    let durationSum = 0;
+    let durationCount = 0;
+    const allBuckets = buckets.map(le => ({ le, count: 0 }));
+
+    for (const item of requests.values()) {
+        total += item.value;
+        if (Number(item.label.status) >= 400) errors += item.value;
+        const route = item.label.route;
+        if (!routeMap.has(route)) routeMap.set(route, { route, requests: 0, errors: 0 });
+        const row = routeMap.get(route);
+        row.requests += item.value;
+        if (Number(item.label.status) >= 400) row.errors += item.value;
+    }
+
+    for (const metric of durations.values()) {
+        durationSum += metric.sum;
+        durationCount += metric.count;
+        metric.buckets.forEach((bucket, index) => { allBuckets[index].count += bucket.count; });
+    }
+
+    const target = Math.ceil(durationCount * 0.95);
+    let p95 = null;
+    if (durationCount > 0) {
+        p95 = '+Inf';
+        for (const bucket of allBuckets) {
+            if (bucket.count >= target) { p95 = bucket.le; break; }
+        }
+    }
+
+    return {
+        application: 'Supermercado Inteligente',
+        captured_at: new Date().toISOString(),
+        uptime_seconds: Math.floor((Date.now() - startedAt) / 1000),
+        requests_total: total,
+        errors_total: errors,
+        error_rate_percent: total ? Number((errors / total * 100).toFixed(2)) : 0,
+        average_latency_ms: durationCount ? Number((durationSum / durationCount * 1000).toFixed(2)) : 0,
+        p95_latency_bucket_seconds: p95,
+        requests_in_flight: inFlight,
+        routes: Array.from(routeMap.values()).sort((a, b) => b.requests - a.requests)
+    };
+}
+
+module.exports = { metricsMiddleware, renderMetrics, getTelemetrySnapshot };
