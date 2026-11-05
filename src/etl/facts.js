@@ -7,13 +7,10 @@ async function syncSalesFacts() {
         .join('orders as o', 'o.id', 'oi.order_id')
         .join('customers as c', 'c.id', 'o.customer_id')
         .join('products as p', 'p.id', 'oi.product_id')
-        .join('dim_date as dd', dbOLTP.raw(
-            "dd.date_key = CAST(DATE_FORMAT(COALESCE(o.placed_at, o.created_at), '%Y%m%d') AS UNSIGNED)"
-        ))
         .join('dim_product as dp', 'dp.source_product_id', 'p.id')
         .join('dim_customer as dc', 'dc.source_customer_id', 'c.id')
         .select(
-            'dd.date_key',
+            dbOLTP.raw("CAST(DATE_FORMAT(COALESCE(o.placed_at, o.created_at), '%Y%m%d') AS UNSIGNED) AS date_key"),
             'dp.product_key',
             'dc.customer_key',
             'o.id as source_order_id',
