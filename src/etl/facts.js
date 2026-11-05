@@ -1,39 +1,72 @@
 const { dbOLTP, dbOLAP } = require('../config/database');
 
+function toDateKey(value) {
+    const valueText = value instanceof Date
+        ? value.toISOString().slice(0, 10)
+        : String(value).slice(0, 10);
+    return Number(valueText.replace(/-/g, ''));
+}
+
 async function syncSalesFacts() {
     console.log('\nCarregando fact_sales...');
 
-    const rows = await dbOLTP('order_items as oi')
+    // As dimensões pertencem ao banco OLAP; não devem ser consultadas via OLTP.
+    const [products, customers] = await Promise.all([
+        dbOLAP('dim_product').select('source_product_id', 'product_key'),
+        dbOLAP('dim_customer').select('source_customer_id', 'customer_key')
+    ]);
+
+    const productKeys = new Map(products.map(row => [Number(row.source_product_id), row.product_key]));
+    const customerKeys = new Map(customers.map(row => [Number(row.source_customer_id), row.customer_key]));
+
+    const sourceRows = await dbOLTP('order_items as oi')
         .join('orders as o', 'o.id', 'oi.order_id')
-        .join('customers as c', 'c.id', 'o.customer_id')
-        .join('products as p', 'p.id', 'oi.product_id')
-        .join('dim_product as dp', 'dp.source_product_id', 'p.id')
-        .join('dim_customer as dc', 'dc.source_customer_id', 'c.id')
         .select(
-            dbOLTP.raw("CAST(DATE_FORMAT(COALESCE(o.placed_at, o.created_at), '%Y%m%d') AS UNSIGNED) AS date_key"),
-            'dp.product_key',
-            'dc.customer_key',
-            'o.id as source_order_id',
             'oi.id as source_order_item_id',
-            'o.order_number',
+            'oi.product_id',
             'oi.quantity',
             'oi.unit_price',
-            dbOLTP.raw('(oi.quantity * oi.unit_price) AS gross_amount'),
             'oi.discount as discount_amount',
-            'oi.line_total as net_amount'
+            'oi.line_total as net_amount',
+            'o.id as source_order_id',
+            'o.customer_id',
+            'o.order_number',
+            'o.placed_at',
+            'o.created_at'
         );
 
-    const chunkSize = 250;
-    for (let i = 0; i < rows.length; i += chunkSize) {
+    const rows = sourceRows
+        .map(row => {
+            const productKey = productKeys.get(Number(row.product_id));
+            const customerKey = customerKeys.get(Number(row.customer_id));
+            if (!productKey || !customerKey) return null;
+
+            return {
+                date_key: toDateKey(row.placed_at || row.created_at),
+                product_key: productKey,
+                customer_key: customerKey,
+                source_order_id: row.source_order_id,
+                source_order_item_id: row.source_order_item_id,
+                order_number: row.order_number,
+                quantity: row.quantity,
+                unit_price: row.unit_price,
+                gross_amount: Number(row.quantity) * Number(row.unit_price),
+                discount_amount: row.discount_amount,
+                net_amount: row.net_amount
+            };
+        })
+        .filter(Boolean);
+
+    for (let i = 0; i < rows.length; i += 250) {
         await dbOLAP('fact_sales')
-            .insert(rows.slice(i, i + chunkSize))
+            .insert(rows.slice(i, i + 250))
             .onConflict('source_order_item_id')
             .merge([
                 'date_key', 'product_key', 'customer_key', 'source_order_id',
                 'order_number', 'quantity', 'unit_price', 'gross_amount',
                 'discount_amount', 'net_amount'
             ]);
-        console.log(`fact_sales: ${Math.min(i + chunkSize, rows.length)}/${rows.length}`);
+        console.log(`fact_sales: ${Math.min(i + 250, rows.length)}/${rows.length}`);
     }
 
     return rows.length;
@@ -43,29 +76,46 @@ async function syncInventoryFacts() {
     console.log('\nCarregando snapshot em fact_inventory...');
 
     const dateResult = await dbOLTP.raw(
-        "SELECT CAST(DATE_FORMAT(CURDATE(), '%Y%m%d') AS UNSIGNED) AS date_key"
+        "SELECT DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS today"
     );
-    const dateKey = Number(dateResult[0][0].date_key);
+    const dateKey = toDateKey(dateResult[0][0].today);
 
     const inventory = await dbOLTP('inventory as i')
         .join('products as p', 'p.id', 'i.product_id')
-        .join('dim_product as dp', 'dp.source_product_id', 'p.id')
         .select(
-            dbOLTP.raw('? AS date_key', [dateKey]),
-            'dp.product_key',
+            'p.id as source_product_id',
             'i.quantity',
-            'i.minimum_quantity',
-            dbOLTP.raw('(i.quantity < i.minimum_quantity) AS below_minimum')
+            'i.minimum_quantity'
         );
 
-    for (let i = 0; i < inventory.length; i += 250) {
-        await dbOLAP('fact_inventory')
-            .insert(inventory.slice(i, i + 250))
-            .onConflict(['date_key', 'product_key'])
-            .merge(['quantity', 'minimum_quantity', 'below_minimum', 'loaded_at']);
+    const productDimensions = await dbOLAP('dim_product')
+        .select('source_product_id', 'product_key');
+    const productKeys = new Map(productDimensions.map(row => [
+        Number(row.source_product_id), row.product_key
+    ]));
+
+    const rows = inventory
+        .map(row => {
+            const productKey = productKeys.get(Number(row.source_product_id));
+            if (!productKey) return null;
+            return {
+                date_key: dateKey,
+                product_key: productKey,
+                quantity: row.quantity,
+                minimum_quantity: row.minimum_quantity,
+                below_minimum: Number(row.quantity) < Number(row.minimum_quantity) ? 1 : 0
+            };
+        })
+        .filter(Boolean);
+
+    // Substitui o snapshot do dia: reexecutar o ETL não duplica fotografias.
+    await dbOLAP('fact_inventory').where({ date_key: dateKey }).del();
+
+    for (let i = 0; i < rows.length; i += 250) {
+        await dbOLAP('fact_inventory').insert(rows.slice(i, i + 250));
     }
 
-    return inventory.length;
+    return rows.length;
 }
 
 async function syncAllFacts() {
