@@ -185,7 +185,7 @@ async function createOpeningInventory(trx, products, random) {
       reference_type: 'DEMO_SEED',
       reference_id: null,
       notes: TAG + ': estoque inicial fictício',
-      created_at: trx.fn.now()
+      created_at: new Date('2023-12-31T23:59:59.000Z')
     });
     created++;
   }
@@ -265,10 +265,9 @@ async function createDemoOrders(trx, customers, products, suppliers, random) {
       const after = money(before - quantity);
       stock.set(productId, after);
 
-      const supplier = suppliers[Math.floor(random() * suppliers.length)];
       movementRows.push({
         product_id: productId,
-        supplier_id: supplier.id,
+        supplier_id: null,
         performed_by: null,
         movement_type: 'EXIT',
         quantity,
