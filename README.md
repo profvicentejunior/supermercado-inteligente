@@ -46,7 +46,7 @@ Acesse `http://localhost:3000/admin/dashboard`.
 - Configure as variáveis do `.env.example` no serviço de hospedagem; nunca envie `.env` ou credenciais ao Git.
 - Para conexão entre Render e MySQL externo, confirme que o provedor permite acesso remoto, SSL/TLS, lista de IPs permitidos e conexões de saída do Render.
 - Não exponha a porta 3306 publicamente sem restrição. Prefira TLS e allowlist de IP quando suportada.
-- O OpenTelemetry Collector será executado como serviço/processo separado do backend, conforme a arquitetura didática definida.
+- A aplicação pode exportar métricas diretamente ao Grafana Cloud por OTLP/HTTP, sem Collector separado.
 
 ## Decisões arquiteturais
 - Monólito modular: simples de operar e suficiente para o escopo educacional.
@@ -76,9 +76,10 @@ A aplicação expõe métricas Prometheus em `/system/metrics`:
 
 Após iniciar a aplicação, valide em `http://localhost:3000/system/metrics`. O endpoint não contém credenciais nem dados pessoais.
 
-O arquivo `observability/otel-collector-config.yaml` configura o OpenTelemetry Collector para coletar essas métricas a cada 10 segundos e exportá-las ao Grafana Cloud por OTLP/HTTP. Configure no ambiente do Collector:
-- `APP_METRICS_TARGET`: endereço acessível pelo Collector, por exemplo `host.docker.internal:3000` quando executado em container no mesmo computador (ou `localhost:3000` quando executado diretamente no host).
-- `GRAFANA_CLOUD_OTLP_ENDPOINT`: endpoint OTLP/HTTP fornecido pela sua instância Grafana Cloud.
-- `GRAFANA_CLOUD_OTLP_AUTH`: valor Base64 de `usuario:token` fornecido pelo Grafana Cloud; mantenha-o somente como variável de ambiente, nunca no Git.
+A aplicação pode enviar métricas diretamente ao Grafana Cloud usando OpenTelemetry SDK + OTLP/HTTP. Para habilitar:
+1. Configure no Render `GRAFANA_CLOUD_OTLP_ENDPOINT` com o endpoint OTLP da sua stack.
+2. Configure `GRAFANA_CLOUD_OTLP_AUTH` com o valor Base64 de `usuario:token`, sem o prefixo `Basic `.
+3. Configure `OTEL_SERVICE_NAME=supermercado-inteligente`.
+4. A aplicação exporta métricas a cada 15 segundos. Sem as duas variáveis do Grafana, a exportação fica desativada e a aplicação continua funcionando normalmente.
 
-Este primeiro laboratório instrumenta métricas HTTP. Traces distribuídos e exportação de logs OTLP permanecem como evolução posterior; não devem ser considerados implementados nesta fase.
+O endpoint local `/system/metrics` continua disponível em formato Prometheus e o painel `/system/telemetry` continua exibindo os indicadores locais. A exportação OTLP envia métricas de requisições, duração, requisições em andamento e uptime. Traces distribuídos e logs OTLP ainda não estão implementados.
