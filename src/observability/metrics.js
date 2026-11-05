@@ -1,4 +1,5 @@
 const startedAt = Date.now();
+const { recordRequest, changeInFlight } = require('./otel');
 const requests = new Map();
 const durations = new Map();
 let inFlight = 0;
@@ -19,10 +20,12 @@ function labelText(label) {
 
 function metricsMiddleware(req, res, next) {
     inFlight++;
+    changeInFlight(1);
     const start = process.hrtime.bigint();
 
     res.once('finish', () => {
         inFlight = Math.max(0, inFlight - 1);
+        changeInFlight(-1);
         const route = req.route && req.route.path
             ? String(req.baseUrl || '') + String(req.route.path)
             : 'unmatched';
@@ -31,6 +34,7 @@ function metricsMiddleware(req, res, next) {
         requests.set(key, { label, value: (requests.get(key)?.value || 0) + 1 });
 
         const seconds = Number(process.hrtime.bigint() - start) / 1e9;
+        recordRequest(req.method, route, res.statusCode, seconds);
         if (!durations.has(key)) {
             durations.set(key, { label, count: 0, sum: 0, buckets: buckets.map(le => ({ le, count: 0 })) });
         }
