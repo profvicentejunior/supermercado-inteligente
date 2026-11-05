@@ -65,3 +65,20 @@ Acesse `http://localhost:3000/admin/dashboard`.
 5. Construir camada OLAP e relatórios.
 6. Integrar OpenTelemetry e Grafana Cloud.
 7. Integrar Gemini com prompts versionados, limites, avaliação e circuit breaker.
+
+## Observabilidade prática com Grafana Cloud
+
+A aplicação expõe métricas Prometheus em `/system/metrics`:
+- `supermercado_http_requests_total`: total de requisições por método, rota e status HTTP.
+- `supermercado_http_request_duration_seconds`: histograma de latência.
+- `supermercado_http_requests_in_flight`: requisições em andamento.
+- `supermercado_process_uptime_seconds`: tempo de atividade do processo.
+
+Após iniciar a aplicação, valide em `http://localhost:3000/system/metrics`. O endpoint não contém credenciais nem dados pessoais.
+
+O arquivo `observability/otel-collector-config.yaml` configura o OpenTelemetry Collector para coletar essas métricas a cada 10 segundos e exportá-las ao Grafana Cloud por OTLP/HTTP. Configure no ambiente do Collector:
+- `APP_METRICS_TARGET`: endereço acessível pelo Collector, por exemplo `host.docker.internal:3000` quando executado em container no mesmo computador (ou `localhost:3000` quando executado diretamente no host).
+- `GRAFANA_CLOUD_OTLP_ENDPOINT`: endpoint OTLP/HTTP fornecido pela sua instância Grafana Cloud.
+- `GRAFANA_CLOUD_OTLP_AUTH`: valor Base64 de `usuario:token` fornecido pelo Grafana Cloud; mantenha-o somente como variável de ambiente, nunca no Git.
+
+Este primeiro laboratório instrumenta métricas HTTP. Traces distribuídos e exportação de logs OTLP permanecem como evolução posterior; não devem ser considerados implementados nesta fase.
