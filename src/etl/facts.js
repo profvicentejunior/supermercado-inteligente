@@ -108,12 +108,14 @@ async function syncInventoryFacts() {
         })
         .filter(Boolean);
 
-    // Substitui o snapshot do dia: reexecutar o ETL não duplica fotografias.
-    await dbOLAP('fact_inventory').where({ date_key: dateKey }).del();
+    // Substitui o snapshot do dia em uma transação para evitar fotografia parcial.
+    await dbOLAP.transaction(async trx => {
+        await trx('fact_inventory').where({ date_key: dateKey }).del();
 
-    for (let i = 0; i < rows.length; i += 250) {
-        await dbOLAP('fact_inventory').insert(rows.slice(i, i + 250));
-    }
+        for (let i = 0; i < rows.length; i += 250) {
+            await trx('fact_inventory').insert(rows.slice(i, i + 250));
+        }
+    });
 
     return rows.length;
 }
