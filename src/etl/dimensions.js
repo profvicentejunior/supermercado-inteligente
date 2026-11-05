@@ -32,28 +32,9 @@ async function upsertInChunks(tableName, rows, uniqueColumn) {
 
 // Gera a dimensão de datas.
 async function syncDateDimension() {
-    const bounds = await dbOLTP('orders')
-        .select(
-            dbOLTP.raw(
-                "DATE_FORMAT(MIN(COALESCE(placed_at, created_at)), '%Y-%m-%d') AS min_date"
-            )
-        )
-        .first();
-
-    const todayResult = await dbOLTP.raw(
-        "SELECT DATE_FORMAT(NOW(), '%Y-%m-%d') AS today"
-    );
-
-    const today = todayResult[0][0].today;
-    const startDate = bounds.min_date || today;
-
-    const start = new Date(`${startDate}T00:00:00.000Z`);
-    const end = new Date(`${today}T00:00:00.000Z`);
-
-    // Evita intervalo invertido caso existam datas futuras.
-    if (start > end) {
-        start.setTime(end.getTime());
-    }
+    // Calendário analítico fixo para exercícios e comparações históricas.
+    const start = new Date('2024-01-01T00:00:00.000Z');
+    const end = new Date('2030-12-31T00:00:00.000Z');
 
     const rows = [];
 
