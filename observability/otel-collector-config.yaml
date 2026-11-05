@@ -1,0 +1,26 @@
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: supermercado-inteligente
+          scrape_interval: 10s
+          metrics_path: /system/metrics
+          static_configs:
+            - targets: ["${env:APP_METRICS_TARGET}"]
+
+processors:
+  batch:
+    timeout: 5s
+
+exporters:
+  otlphttp/grafana:
+    endpoint: ${env:GRAFANA_CLOUD_OTLP_ENDPOINT}
+    headers:
+      Authorization: "Basic ${env:GRAFANA_CLOUD_OTLP_AUTH}"
+
+service:
+  pipelines:
+    metrics:
+      receivers: [prometheus]
+      processors: [batch]
+      exporters: [otlphttp/grafana]
