@@ -374,6 +374,26 @@ async function main() {
       console.log('3/5 — Associando fornecedores aos produtos...');
       const supplierLinks = await seedSupplierProducts(trx, suppliers, products, random);
 
+      const existingDemoOrders = await trx('orders')
+        .where('order_number', 'like', 'DEMO-%')
+        .count({ total: '*' })
+        .first();
+
+      if (Number(existingDemoOrders.total) > 0) {
+        console.log('Carga de vendas DEMO já existe; estoque e movimentos serão preservados.');
+        return {
+          customers: customers.length,
+          suppliers: suppliers.length,
+          products: products.length,
+          supplierLinks,
+          openingMovements: 0,
+          orders: 0,
+          items: 0,
+          movements: 0,
+          skipped: true
+        };
+      }
+
       console.log('4/5 — Preparando estoque inicial...');
       const openingMovements = await createOpeningInventory(trx, products, random);
 
